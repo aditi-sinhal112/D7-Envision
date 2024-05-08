@@ -1,0 +1,28 @@
+#python
+
+def sysCall_init():
+    sim = require('sim')
+    simVision = require('simVision')
+
+    # do some initialization here
+    #
+    # Instead of using globals, you can do e.g.:
+    # self.myVariable = 21000000
+
+def sysCall_actuation():
+    # put your actuation code here
+    pass
+
+def sysCall_sensing():
+    # put your sensing code here
+    pass
+
+def sysCall_cleanup():
+    # do some clean-up here
+    pass
+
+# See the user manual or the available code snippets for additional callback functions and details
+def sysCall_vision(inData):
+    simVision.sensorImgToWorkImg(inData['handle']) # copy the vision sensor image to the work image
+    simVision.edgeDetectionOnWorkImg(inData['handle'], 0.2) # perform edge detection on the work image
+    simVision.workImgToSensorImg(inData['handle']) # copy the work image to the vision sensor image buffer
