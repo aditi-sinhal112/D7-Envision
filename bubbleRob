@@ -1,0 +1,83 @@
+#python
+
+import math
+
+# Initialization
+def sysCall_init():
+    sim = require('sim')
+    simUI = require('simUI')
+
+    self.bubbleRobBase = sim.getObject('.')
+    self.leftMotor = sim.getObject("./leftMotor")
+    self.rightMotor = sim.getObject("./rightMotor")
+    self.noseSensor = sim.getObject("./sensingNose")
+
+    self.minMaxSpeed = [50 * math.pi / 180, 300 * math.pi / 180]
+    self.backUntilTime = -1
+
+    self.floorSensorHandles = [-1, -1, -1]
+    self.floorSensorHandles[0] = sim.getObject("./leftSensor")
+    self.floorSensorHandles[1] = sim.getObject("./middleSensor")
+    self.floorSensorHandles[2] = sim.getObject("./rightSensor")
+
+    self.robotTrace = sim.addDrawingObject(
+        sim.drawing_linestrip + sim.drawing_cyclic, 2, 0, -1, 200,
+        [1, 1, 0], None, None, [1, 1, 0]
+    )
+
+    xml = f'<ui title="{sim.getObjectAlias(self.bubbleRobBase, 1)} speed" closeable="false" ' + \
+      'resizeable="false" activate="false"> <hslider minimum="0" ' + \
+      'maximum="100" on-change="speedChange_callback" id="1"/>' + \
+      '<label text="" style="* {{margin-left: 300px;}}"/>' + \
+      '</ui>'
+
+    self.ui = simUI.create(xml)
+
+    self.speed = (self.minMaxSpeed[0] + self.minMaxSpeed[1]) * 0.5
+    simUI.setSliderValue(
+        self.ui, 1,
+        100 * (self.speed - self.minMaxSpeed[0]) / (self.minMaxSpeed[1] - self.minMaxSpeed[0])
+    )
+
+# Sensing callback
+def sysCall_sensing():
+    p = sim.getObjectPosition(self.bubbleRobBase)
+    sim.addDrawingObjectItem(self.robotTrace, p)
+
+# UI callback
+def speedChange_callback(ui, id, newVal):
+    self.speed = self.minMaxSpeed[0] + (self.minMaxSpeed[1] - self.minMaxSpeed[0]) * newVal / 100
+
+# Actuation callback
+def sysCall_actuation():
+    result, *_ = sim.readProximitySensor(self.noseSensor)
+    if result > 0:
+        self.backUntilTime = sim.getSimulationTime() + 4
+
+    sensorReading = [False, False, False]
+    for i in range(3):
+        result = sim.readVisionSensor(self.floorSensorHandles[i])
+        if isinstance(result, tuple):
+            result, data, *_ = result
+        if result >= 0:
+            sensorReading[i] = (data[10] < 0.5)  # Indexing adjusted for 0-based Python
+
+    rightV = self.speed
+    leftV = self.speed
+    if sensorReading[0]:
+        leftV = 0.03 * self.speed
+    if sensorReading[2]:
+        rightV = 0.03 * self.speed
+    if sensorReading[0] and sensorReading[2]:
+        self.backUntilTime = sim.getSimulationTime() + 2
+
+    if self.backUntilTime < sim.getSimulationTime():
+        sim.setJointTargetVelocity(self.leftMotor, leftV)
+        sim.setJointTargetVelocity(self.rightMotor, rightV)
+    else:
+        sim.setJointTargetVelocity(self.leftMotor, -self.speed / 2)
+        sim.setJointTargetVelocity(self.rightMotor, -self.speed / 8)
+
+# Cleanup callback
+def sysCall_cleanup():
+    simUI.destroy(self.ui)
