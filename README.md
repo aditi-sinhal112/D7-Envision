@@ -16,4 +16,4 @@ We then decorate the robot according to us and our structure of robot and line i
 
 ## Scripting the Robot and the Line
 
-We are done with the structure of robot and line but we still need to give it instructions to run. You can find the required on code on other files on this github.
+You can find the required code for instructions in the below files in this repo.
